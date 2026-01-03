@@ -1,0 +1,268 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  AlertCircle,
+  Calendar,
+  FileText,
+  ExternalLink,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
+
+interface Alert {
+  id: string
+  nps_alert_id: string
+  title: string
+  description: string
+  category: string
+  url: string
+  last_updated_by_nps: string
+  fetched_at: string
+}
+
+interface ParkData {
+  park: {
+    id: string
+    park_code: string
+    name: string
+  }
+  currentAlerts: Alert[]
+}
+
+export default function ParkPage() {
+  const params = useParams()
+  const router = useRouter()
+  const code = params.code as string
+
+  const [parkData, setParkData] = useState<ParkData | null>(null)
+  const [expandedAlert, setExpandedAlert] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (code) {
+      fetchParkData()
+    }
+  }, [code])
+
+  const fetchParkData = async () => {
+    try {
+      const res = await fetch(`/api/parks/${code}/alerts`)
+      if (!res.ok) throw new Error('Park not found')
+      const data: ParkData = await res.json()
+      setParkData(data)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getCategoryColor = (category: string) => {
+    switch (category?.toLowerCase()) {
+      case 'danger':
+      case 'closure':
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700'
+      case 'caution':
+      case 'warning':
+        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700'
+      case 'info':
+      case 'information':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
+      default:
+        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700'
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center">
+        <p className="text-gray-600 dark:text-gray-400">Loading park data...</p>
+      </div>
+    )
+  }
+
+  if (error || !parkData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+        <nav className="border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 py-4">
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Parks
+            </button>
+          </div>
+        </nav>
+        <div className="max-w-6xl mx-auto px-6 py-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">
+            {error ? `Error: ${error}` : 'Park not found'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const { park, currentAlerts } = parkData
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+      {/* Navigation */}
+      <nav className="border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Parks
+          </button>
+        </div>
+      </nav>
+
+      {/* Header */}
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="mb-8">
+          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mb-2">
+            {park.park_code}
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
+            {park.name}
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            {currentAlerts.length} active{' '}
+            {currentAlerts.length === 1 ? 'alert' : 'alerts'}
+          </p>
+        </div>
+
+        {/* Alerts Grid */}
+        {currentAlerts.length === 0 ? (
+          <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">
+              No active alerts for this park
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {currentAlerts.map((alert) => (
+              <div
+                key={alert.nps_alert_id}
+                className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                {/* Alert Summary */}
+                <button
+                  onClick={() =>
+                    setExpandedAlert(
+                      expandedAlert === alert.nps_alert_id
+                        ? null
+                        : alert.nps_alert_id
+                    )
+                  }
+                  className="w-full text-left p-6 flex items-start justify-between gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryColor(
+                          alert.category
+                        )}`}
+                      >
+                        {alert.category}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {alert.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Updated{' '}
+                      {new Date(alert.last_updated_by_nps).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    {expandedAlert === alert.nps_alert_id ? (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Expanded Content */}
+                {expandedAlert === alert.nps_alert_id && (
+                  <div className="border-t border-gray-200 dark:border-slate-700 p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/50">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Description
+                      </h4>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                        {alert.description}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-600">
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                          Last Updated (NPS)
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          {new Date(
+                            alert.last_updated_by_nps
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                          First Fetched
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          {new Date(alert.fetched_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <a
+                        href={alert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm"
+                      >
+                        View on NPS.gov
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Info Box */}
+        <div className="mt-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+            📊 About This Data
+          </h3>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            This page shows the current alerts for {park.name}. We poll the NPS
+            API every 15 minutes and store the complete alert history in our
+            database. This allows us to track how alerts change over time for
+            each park.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
