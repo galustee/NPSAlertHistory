@@ -2,11 +2,11 @@
 
 **Track the complete timeline of U.S. National Park alerts.**
 
-The National Park Service provides only current alerts. This project continuously polls the NPS API every 15 minutes and stores the full alert history, letting you see how alerts have changed over time for each park.
+The National Park Service provides only current alerts. This project polls the NPS API once daily and stores the full alert history, letting you see how alerts have changed over time for each park.
 
 ## ✨ Features
 
-- 🔄 **Real-time Polling** - Fetches from NPS API every 15 minutes via Vercel Cron
+- 🔄 **Real-time Polling** - Fetches from NPS API once per day at 9 AM UTC via Vercel Cron
 - 📊 **Complete History** - Append-only design tracks every alert change
 - 🎨 **Beautiful UI** - Modern, responsive design with dark mode support
 - 🔒 **Secure** - Database credentials never exposed to frontend

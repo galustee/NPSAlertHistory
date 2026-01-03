@@ -169,7 +169,7 @@ export default function Home() {
             >
               NPS Developer API
             </a>{' '}
-            • Updated every 15 minutes
+            • Updated daily at 9 AM UTC
           </p>
         </div>
       </footer>

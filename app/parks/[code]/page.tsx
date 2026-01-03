@@ -257,7 +257,7 @@ export default function ParkPage() {
           </h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
             This page shows the current alerts for {park.name}. We poll the NPS
-            API every 15 minutes and store the complete alert history in our
+            API once per day (9 AM UTC) and store the complete alert history in our
             database. This allows us to track how alerts change over time for
             each park.
           </p>
