@@ -126,9 +126,9 @@ export async function GET(req: Request) {
 
     const parkCodeToId = new Map<string, string>()
     parks?.forEach(park => parkCodeToId.set(park.park_code, park.id))
-
-    // Step 3: Mark alerts as inactive for these parks (batch)
     const parkIds = Array.from(parkCodeToId.values())
+
+    // Step 3: Mark ALL alerts as inactive for parks we're about to process
     if (parkIds.length > 0) {
       await supabase
         .from('alerts')
@@ -164,26 +164,23 @@ export async function GET(req: Request) {
       })
     }
 
-    // Step 5: Batch insert alerts (on conflict do nothing, then batch update active status)
+    // Step 5: Batch upsert alerts - insert new ones, update existing to is_active=true
     if (alertsToInsert.length > 0) {
-      const { data: inserted } = await supabase
+      const { error } = await supabase
         .from('alerts')
-        .insert(alertsToInsert)
-        .select('nps_alert_id')
+        .upsert(alertsToInsert, {
+          onConflict: 'park_id,nps_alert_id,last_updated_by_nps',
+          ignoreDuplicates: false
+        })
 
-      alertsInserted = inserted?.length || 0
-
-      // For all alerts in this batch, mark matching ones as active (batch update by nps_alert_id)
-      const npsAlertIds = alertsToInsert.map(a => a.nps_alert_id)
-      if (npsAlertIds.length > 0) {
-        await supabase
-          .from('alerts')
-          .update({ is_active: true })
-          .in('nps_alert_id', npsAlertIds)
-          .in('park_id', parkIds)
-
-        alertsUpdated = alertsToInsert.length - alertsInserted
+      if (error) {
+        console.error('Upsert error:', error)
+        throw error
       }
+
+      // Report the count of alerts we processed
+      alertsInserted = alertsToInsert.length
+      alertsUpdated = 0
     }
 
     parksInserted = uniqueParks.length
