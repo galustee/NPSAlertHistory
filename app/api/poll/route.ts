@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import parkNameMapping from '@/park-names-mapping.json'
 
 interface NPSAlert {
   parkCode: string
@@ -12,6 +13,25 @@ interface NPSAlert {
 
 interface NPSResponse {
   data: NPSAlert[]
+}
+
+// Cache for park names to avoid repeated lookups
+const parkNameCache: Map<string, string> = new Map()
+
+function getParkFullName(parkCode: string): string {
+  // Check cache first
+  if (parkNameCache.has(parkCode)) {
+    return parkNameCache.get(parkCode)!
+  }
+
+  // Look up in the static mapping (generated once from NPS API)
+  const mapping = parkNameMapping as Record<string, string>
+  const fullName = mapping[parkCode] || parkCode
+
+  // Cache the result
+  parkNameCache.set(parkCode, fullName)
+
+  return fullName
 }
 
 export async function GET(req: Request) {
@@ -41,13 +61,16 @@ export async function GET(req: Request) {
     // Process each alert
     for (const alert of npsData.data) {
       try {
-        // 1. Upsert park
+        // Get full park name from static mapping
+        const fullParkName = getParkFullName(alert.parkCode)
+
+        // 1. Upsert park with full name
         const { data: park, error: parkError } = await supabase
           .from('parks')
           .upsert(
             {
               park_code: alert.parkCode,
-              name: alert.parkCode, // Will be enhanced later with full park info
+              name: fullParkName,
             },
             { onConflict: 'park_code' }
           )

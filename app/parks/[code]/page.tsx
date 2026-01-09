@@ -12,6 +12,9 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  CheckCircle,
+  XCircle,
+  History,
 } from 'lucide-react'
 
 interface Alert {
@@ -21,6 +24,14 @@ interface Alert {
   description: string
   category: string
   url: string
+  last_updated_by_nps: string
+  fetched_at: string
+}
+
+interface HistoryVersion {
+  id: string
+  title: string
+  description: string
   last_updated_by_nps: string
   fetched_at: string
 }
@@ -41,6 +52,8 @@ export default function ParkPage() {
 
   const [parkData, setParkData] = useState<ParkData | null>(null)
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null)
+  const [expandedHistory, setExpandedHistory] = useState<string | null>(null)
+  const [history, setHistory] = useState<Record<string, HistoryVersion[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,6 +73,20 @@ export default function ParkPage() {
       setError(String(err))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchAlertHistory = async (alertId: string) => {
+    try {
+      const res = await fetch(`/api/parks/${code}/history?alertId=${alertId}`)
+      if (!res.ok) throw new Error('Failed to load history')
+      const data = await res.json()
+      setHistory((prev) => ({
+        ...prev,
+        [alertId]: data.versions || [],
+      }))
+    } catch (err) {
+      console.error('Error fetching history:', err)
     }
   }
 
@@ -160,13 +187,16 @@ export default function ParkPage() {
               >
                 {/* Alert Summary */}
                 <button
-                  onClick={() =>
-                    setExpandedAlert(
+                  onClick={() => {
+                    const newExpanded =
                       expandedAlert === alert.nps_alert_id
                         ? null
                         : alert.nps_alert_id
-                    )
-                  }
+                    setExpandedAlert(newExpanded)
+                    if (newExpanded && !history[alert.nps_alert_id]) {
+                      fetchAlertHistory(alert.nps_alert_id)
+                    }
+                  }}
                   className="w-full text-left p-6 flex items-start justify-between gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <div className="flex-1">
@@ -177,6 +207,10 @@ export default function ParkPage() {
                         )}`}
                       >
                         {alert.category}
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-300 dark:border-green-700">
+                        <CheckCircle className="w-3 h-3" />
+                        Active
                       </span>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -243,6 +277,70 @@ export default function ParkPage() {
                         <ExternalLink className="w-4 h-4" />
                       </a>
                     </div>
+
+                    {/* Alert History Timeline */}
+                    {history[alert.nps_alert_id] &&
+                      history[alert.nps_alert_id].length > 1 && (
+                        <div className="pt-4 border-t border-gray-200 dark:border-slate-600">
+                          <button
+                            onClick={() =>
+                              setExpandedHistory(
+                                expandedHistory === alert.nps_alert_id
+                                  ? null
+                                  : alert.nps_alert_id
+                              )
+                            }
+                            className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
+                          >
+                            <History className="w-4 h-4" />
+                            Alert History (
+                            {history[alert.nps_alert_id].length} versions)
+                            {expandedHistory === alert.nps_alert_id ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+
+                          {expandedHistory === alert.nps_alert_id && (
+                            <div className="mt-4 space-y-3">
+                              {history[alert.nps_alert_id].map(
+                                (version, index) => (
+                                  <div
+                                    key={`${version.fetched_at}-${index}`}
+                                    className="relative pl-6"
+                                  >
+                                    {/* Timeline connector */}
+                                    {index <
+                                      history[alert.nps_alert_id].length - 1 && (
+                                      <div className="absolute left-0 top-6 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-600"></div>
+                                    )}
+
+                                    {/* Timeline dot */}
+                                    <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+
+                                    <div className="bg-white dark:bg-slate-700/50 rounded p-3 border border-gray-100 dark:border-slate-600">
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 font-mono mb-2">
+                                        {new Date(
+                                          version.last_updated_by_nps
+                                        ).toLocaleString()}
+                                      </p>
+                                      {index === 0 && (
+                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">
+                                          (Current)
+                                        </p>
+                                      )}
+                                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                                        {version.title}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 )}
               </div>
