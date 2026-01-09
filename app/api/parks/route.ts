@@ -4,7 +4,7 @@ export async function GET() {
   try {
     const { data: parks, error } = await supabase
       .from('parks')
-      .select('id, park_code, name, created_at')
+      .select('id, park_code, name, designation, created_at')
       .order('name')
 
     if (error) throw error

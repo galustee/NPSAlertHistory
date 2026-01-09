@@ -14,7 +14,7 @@ export async function GET(
     // Get park
     const { data: park, error: parkError } = await supabase
       .from('parks')
-      .select('id, park_code, name')
+      .select('id, park_code, name, designation')
       .eq('park_code', code)
       .single()
 
@@ -36,16 +36,23 @@ export async function GET(
     if (alertError) throw alertError
 
     // Group by nps_alert_id and get only the most recent
-    const currentAlerts = new Map()
+    const allAlertsMap = new Map()
     for (const alert of alerts) {
-      if (!currentAlerts.has(alert.nps_alert_id)) {
-        currentAlerts.set(alert.nps_alert_id, alert)
+      if (!allAlertsMap.has(alert.nps_alert_id)) {
+        allAlertsMap.set(alert.nps_alert_id, alert)
       }
     }
 
+    const allAlerts = Array.from(allAlertsMap.values())
+    
+    // Filter alerts by is_active flag
+    const activeAlerts = allAlerts.filter(alert => alert.is_active === true)
+    const inactiveAlerts = allAlerts.filter(alert => alert.is_active === false)
+
     return Response.json({
       park,
-      currentAlerts: Array.from(currentAlerts.values()),
+      currentAlerts: activeAlerts,
+      inactiveAlerts: inactiveAlerts,
     })
   } catch (err) {
     console.error('Error fetching alerts:', err)

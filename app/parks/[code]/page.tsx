@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   ArrowLeft,
   AlertCircle,
@@ -32,6 +31,8 @@ interface HistoryVersion {
   id: string
   title: string
   description: string
+  category: string
+  url: string
   last_updated_by_nps: string
   fetched_at: string
 }
@@ -41,8 +42,10 @@ interface ParkData {
     id: string
     park_code: string
     name: string
+    designation?: string
   }
   currentAlerts: Alert[]
+  inactiveAlerts: Alert[]
 }
 
 export default function ParkPage() {
@@ -57,13 +60,7 @@ export default function ParkPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (code) {
-      fetchParkData()
-    }
-  }, [code])
-
-  const fetchParkData = async () => {
+  const fetchParkData = useCallback(async () => {
     try {
       const res = await fetch(`/api/parks/${code}/alerts`)
       if (!res.ok) throw new Error('Park not found')
@@ -74,7 +71,13 @@ export default function ParkPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [code])
+
+  useEffect(() => {
+    if (code) {
+      fetchParkData()
+    }
+  }, [code, fetchParkData])
 
   const fetchAlertHistory = async (alertId: string) => {
     try {
@@ -83,7 +86,7 @@ export default function ParkPage() {
       const data = await res.json()
       setHistory((prev) => ({
         ...prev,
-        [alertId]: data.versions || [],
+        [alertId]: data.history || [],
       }))
     } catch (err) {
       console.error('Error fetching history:', err)
@@ -138,7 +141,7 @@ export default function ParkPage() {
     )
   }
 
-  const { park, currentAlerts } = parkData
+  const { park, currentAlerts, inactiveAlerts = [] } = parkData
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
@@ -158,16 +161,31 @@ export default function ParkPage() {
       {/* Header */}
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <p className="text-sm text-gray-600 dark:text-gray-400 font-mono mb-2">
-            {park.park_code}
-          </p>
+          {park.designation && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-2">
+              {park.designation}
+            </p>
+          )}
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
             {park.name}
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            {currentAlerts.length} active{' '}
-            {currentAlerts.length === 1 ? 'alert' : 'alerts'}
-          </p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              {currentAlerts.length} active{' '}
+              {currentAlerts.length === 1 ? 'alert' : 'alerts'}
+            </p>
+            {currentAlerts.length > 0 && (
+              <a
+                href={`https://www.nps.gov/${code}/planyourvisit/conditions.htm`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View all alerts on NPS.gov
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Alerts Grid */}
@@ -266,45 +284,230 @@ export default function ParkPage() {
                       </div>
                     </div>
 
-                    <div className="pt-4">
-                      <a
-                        href={alert.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm"
-                      >
-                        View on NPS.gov
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </div>
-
                     {/* Alert History Timeline */}
-                    {history[alert.nps_alert_id] &&
-                      history[alert.nps_alert_id].length > 1 && (
-                        <div className="pt-4 border-t border-gray-200 dark:border-slate-600">
-                          <button
-                            onClick={() =>
-                              setExpandedHistory(
-                                expandedHistory === alert.nps_alert_id
-                                  ? null
-                                  : alert.nps_alert_id
-                              )
-                            }
-                            className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
-                          >
-                            <History className="w-4 h-4" />
-                            Alert History (
-                            {history[alert.nps_alert_id].length} versions)
-                            {expandedHistory === alert.nps_alert_id ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </button>
+                    <div className="pt-4 border-t border-gray-200 dark:border-slate-600">
+                      <button
+                        onClick={() => {
+                          if (!history[alert.nps_alert_id]) {
+                            fetchAlertHistory(alert.nps_alert_id)
+                          }
+                          setExpandedHistory(
+                            expandedHistory === alert.nps_alert_id
+                              ? null
+                              : alert.nps_alert_id
+                          )
+                        }}
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      >
+                        <History className="w-4 h-4" />
+                        {history[alert.nps_alert_id]
+                          ? `Alert History (${history[alert.nps_alert_id].length} versions)`
+                          : 'View Alert History'}
+                        {expandedHistory === alert.nps_alert_id ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
 
-                          {expandedHistory === alert.nps_alert_id && (
-                            <div className="mt-4 space-y-3">
-                              {history[alert.nps_alert_id].map(
+                      {expandedHistory === alert.nps_alert_id && history[alert.nps_alert_id] && (
+                        <div className="mt-4 space-y-3">
+                          {history[alert.nps_alert_id].length === 0 ? (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No history available for this alert.
+                            </p>
+                          ) : (
+                            history[alert.nps_alert_id].map(
+                              (version, index) => (
+                                <div
+                                  key={`${version.fetched_at}-${index}`}
+                                  className="relative pl-6"
+                                >
+                                  {/* Timeline connector */}
+                                  {index <
+                                    history[alert.nps_alert_id].length - 1 && (
+                                    <div className="absolute left-0 top-6 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-600"></div>
+                                  )}
+
+                                  {/* Timeline dot */}
+                                  <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+
+                                  <div className="bg-white dark:bg-slate-700/50 rounded p-4 border border-gray-100 dark:border-slate-600">
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                          {new Date(
+                                            version.fetched_at
+                                          ).toLocaleString()}
+                                        </p>
+                                        {index === 0 && (
+                                          <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                            (Current)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${getCategoryColor(
+                                          version.category
+                                        )}`}
+                                      >
+                                        {version.category}
+                                      </span>
+                                    </div>
+                                    <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                                      {version.title}
+                                    </h5>
+                                    <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                      {version.description}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Inactive Alerts Section */}
+        {inactiveAlerts && inactiveAlerts.length > 0 && (
+          <div className="mt-12">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Inactive Alerts
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                {inactiveAlerts.length} alert{inactiveAlerts.length !== 1 ? 's' : ''} no longer active on NPS.gov (archived)
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {inactiveAlerts.map((alert) => (
+                <div
+                  key={alert.nps_alert_id}
+                  className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-shadow opacity-70"
+                >
+                  {/* Alert Summary */}
+                  <button
+                    onClick={() => {
+                      const newExpanded =
+                        expandedAlert === alert.nps_alert_id
+                          ? null
+                          : alert.nps_alert_id
+                      setExpandedAlert(newExpanded)
+                      if (newExpanded && !history[alert.nps_alert_id]) {
+                        fetchAlertHistory(alert.nps_alert_id)
+                      }
+                    }}
+                    className="w-full text-left p-6 flex items-start justify-between gap-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryColor(
+                            alert.category
+                          )}`}
+                        >
+                          {alert.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700">
+                          <XCircle className="w-3 h-3" />
+                          Inactive
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {alert.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Last seen{' '}
+                        {new Date(alert.fetched_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      {expandedAlert === alert.nps_alert_id ? (
+                        <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Expanded Content */}
+                  {expandedAlert === alert.nps_alert_id && (
+                    <div className="border-t border-gray-200 dark:border-slate-700 p-6 space-y-4 bg-gray-50/50 dark:bg-slate-900/50">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Description
+                        </h4>
+                        <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                          {alert.description}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-600">
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                            Last Updated (NPS)
+                          </p>
+                          <p className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(
+                              alert.last_updated_by_nps
+                            ).toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
+                            Last Seen
+                          </p>
+                          <p className="text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            {new Date(alert.fetched_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Alert History Timeline */}
+                      <div className="pt-4 border-t border-gray-200 dark:border-slate-600">
+                        <button
+                          onClick={() => {
+                            if (!history[alert.nps_alert_id]) {
+                              fetchAlertHistory(alert.nps_alert_id)
+                            }
+                            setExpandedHistory(
+                              expandedHistory === alert.nps_alert_id
+                                ? null
+                                : alert.nps_alert_id
+                            )
+                          }}
+                          className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          <History className="w-4 h-4" />
+                          {history[alert.nps_alert_id]
+                            ? `Alert History (${history[alert.nps_alert_id].length} versions)`
+                            : 'View Alert History'}
+                          {expandedHistory === alert.nps_alert_id ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {expandedHistory === alert.nps_alert_id && history[alert.nps_alert_id] && (
+                          <div className="mt-4 space-y-3">
+                            {history[alert.nps_alert_id].length === 0 ? (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                No history available for this alert.
+                              </p>
+                            ) : (
+                              history[alert.nps_alert_id].map(
                                 (version, index) => (
                                   <div
                                     key={`${version.fetched_at}-${index}`}
@@ -319,32 +522,47 @@ export default function ParkPage() {
                                     {/* Timeline dot */}
                                     <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
 
-                                    <div className="bg-white dark:bg-slate-700/50 rounded p-3 border border-gray-100 dark:border-slate-600">
-                                      <p className="text-xs text-gray-600 dark:text-gray-400 font-mono mb-2">
-                                        {new Date(
-                                          version.last_updated_by_nps
-                                        ).toLocaleString()}
-                                      </p>
-                                      {index === 0 && (
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">
-                                          (Current)
-                                        </p>
-                                      )}
-                                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                                    <div className="bg-white dark:bg-slate-700/50 rounded p-4 border border-gray-100 dark:border-slate-600">
+                                      <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                                            {new Date(
+                                              version.fetched_at
+                                            ).toLocaleString()}
+                                          </p>
+                                          {index === 0 && (
+                                            <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                              (Most Recent)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span
+                                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${getCategoryColor(
+                                            version.category
+                                          )}`}
+                                        >
+                                          {version.category}
+                                        </span>
+                                      </div>
+                                      <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                                         {version.title}
-                                      </p>
+                                      </h5>
+                                      <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                        {version.description}
+                                      </div>
                                     </div>
                                   </div>
                                 )
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                  </div>
-                )}
-              </div>
-            ))}
+                              )
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
