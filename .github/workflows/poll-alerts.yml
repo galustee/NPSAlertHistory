@@ -1,0 +1,17 @@
+name: Poll NPS Alerts
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll NPS Alerts API
+        run: |
+          curl -X GET "${{ secrets.VERCEL_POLL_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -f -s -o /dev/null -w "Status: %{http_code}\n"

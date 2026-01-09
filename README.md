@@ -72,8 +72,15 @@ CREATE TABLE alerts (
 
 1. Push to GitHub
 2. Import to Vercel
-3. Add environment variables
-4. Configure cron: `0 9 * * *` (daily at 9 AM UTC) → `/api/poll`
+3. Add environment variables to Vercel:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_KEY`
+   - `NPS_API_KEY`
+   - `CRON_SECRET`
+4. Add GitHub Secrets (Settings → Secrets → Actions):
+   - `VERCEL_POLL_URL` = `https://your-app.vercel.app/api/poll`
+   - `CRON_SECRET` = (same value as in Vercel)
+5. GitHub Actions will automatically poll every 15 minutes
 
 ## License
 
