@@ -78,9 +78,11 @@ CREATE TABLE alerts (
    - `NPS_API_KEY`
    - `CRON_SECRET`
 4. Add GitHub Secrets (Settings → Secrets → Actions):
-   - `VERCEL_POLL_URL` = `https://your-app.vercel.app/api/poll`
+   - `VERCEL_POLL_URL` = `https://npsalerthistory.vercel.app/api/poll`
    - `CRON_SECRET` = (same value as in Vercel)
 5. GitHub Actions will automatically poll every 15 minutes
+
+**Note:** Vercel free tier has a 10-second function timeout, so each run processes ~150 alerts. With 15-minute intervals, all alerts are covered multiple times per hour.
 
 ## License
 

@@ -65,11 +65,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Fetch ALL alerts from NPS API with pagination (but limit for performance)
+    // Fetch alerts from NPS API with pagination (limited for Vercel free tier 10s timeout)
     let allAlerts: NPSAlert[] = []
     let start = 0
     const limit = 50
-    const maxPages = 15 // Limit to ~750 alerts to stay under 10s timeout
+    const maxPages = 3 // Limit to ~150 alerts to stay under 10s timeout (runs every 15min)
     let pagesFetched = 0
     let hasMore = true
 
