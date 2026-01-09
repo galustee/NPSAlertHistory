@@ -259,6 +259,20 @@ export default function ParkPage() {
                       </p>
                     </div>
 
+                    {alert.url && (
+                      <div className="pt-3">
+                        <a
+                          href={alert.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          More information on NPS.gov
+                        </a>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-600">
                       <div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-1">
@@ -448,6 +462,20 @@ export default function ParkPage() {
                           {alert.description}
                         </p>
                       </div>
+
+                      {alert.url && (
+                        <div className="pt-3">
+                          <a
+                            href={alert.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            More information on NPS.gov
+                          </a>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-slate-600">
                         <div>
