@@ -68,8 +68,8 @@ export async function GET(req: Request) {
     // Fetch alerts from NPS API with pagination (limited for Vercel free tier 10s timeout)
     let allAlerts: NPSAlert[] = []
     let start = 0
-    const limit = 50
-    const maxPages = 3 // Limit to ~150 alerts to stay under 10s timeout (runs every 15min)
+    const limit = 500 // Try larger batches to reduce pagination calls
+    const maxPages = 2 // With 500 per page, 2 pages = 1000 alerts (covers all ~661)
     let pagesFetched = 0
     let hasMore = true
 
@@ -164,29 +164,24 @@ export async function GET(req: Request) {
       })
     }
 
-    // Step 5: Batch insert alerts (ignore conflicts, then update separately)
+    // Step 5: Batch insert alerts (on conflict do nothing, then batch update active status)
     if (alertsToInsert.length > 0) {
-      const { data: inserted, error: insertError } = await supabase
+      const { data: inserted } = await supabase
         .from('alerts')
         .insert(alertsToInsert)
         .select('nps_alert_id')
 
-      if (insertError && insertError.code !== '23505') {
-        console.error('Batch insert error:', insertError)
-      }
-
       alertsInserted = inserted?.length || 0
 
-      // For duplicates, update them to mark as active
-      if (insertError?.code === '23505' || alertsInserted < alertsToInsert.length) {
-        for (const alert of alertsToInsert) {
-          await supabase
-            .from('alerts')
-            .update({ is_active: true })
-            .eq('park_id', alert.park_id)
-            .eq('nps_alert_id', alert.nps_alert_id)
-            .eq('is_active', false)
-        }
+      // For all alerts in this batch, mark matching ones as active (batch update by nps_alert_id)
+      const npsAlertIds = alertsToInsert.map(a => a.nps_alert_id)
+      if (npsAlertIds.length > 0) {
+        await supabase
+          .from('alerts')
+          .update({ is_active: true })
+          .in('nps_alert_id', npsAlertIds)
+          .in('park_id', parkIds)
+
         alertsUpdated = alertsToInsert.length - alertsInserted
       }
     }
