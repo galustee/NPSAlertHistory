@@ -174,17 +174,15 @@ export default function ParkPage() {
               {currentAlerts.length} active{' '}
               {currentAlerts.length === 1 ? 'alert' : 'alerts'}
             </p>
-            {currentAlerts.length > 0 && (
-              <a
-                href={`https://www.nps.gov/${code}/planyourvisit/conditions.htm`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                View all alerts on NPS.gov
-              </a>
-            )}
+            <a
+              href={`https://www.nps.gov/${code}/planyourvisit/conditions.htm`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View current alerts on NPS.gov
+            </a>
           </div>
         </div>
 
