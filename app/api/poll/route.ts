@@ -65,13 +65,15 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Fetch ALL alerts from NPS API with pagination
+    // Fetch ALL alerts from NPS API with pagination (but limit for performance)
     let allAlerts: NPSAlert[] = []
     let start = 0
-    const limit = 50 // API default/max
+    const limit = 50
+    const maxPages = 15 // Limit to ~750 alerts to stay under 10s timeout
+    let pagesFetched = 0
     let hasMore = true
 
-    while (hasMore) {
+    while (hasMore && pagesFetched < maxPages) {
       const npsRes = await fetch(
         `https://developer.nps.gov/api/v1/alerts?limit=${limit}&start=${start}&api_key=${process.env.NPS_API_KEY}`,
         { cache: 'no-store' }
@@ -83,6 +85,7 @@ export async function GET(req: Request) {
 
       const npsData: NPSResponse = await npsRes.json()
       allAlerts = allAlerts.concat(npsData.data)
+      pagesFetched++
 
       // Check if there are more results
       const total = parseInt(npsData.total || '0')
@@ -104,99 +107,91 @@ export async function GET(req: Request) {
       parksInFeed.add(alert.parkCode)
     }
 
-    // Step 1: Mark alerts as inactive ONLY for parks in this NPS API response
-    // (This ensures we don't incorrectly mark alerts inactive for parks not in the feed)
-    for (const parkCode of parksInFeed) {
-      const { data: park } = await supabase
-        .from('parks')
-        .select('id')
-        .eq('park_code', parkCode)
-        .single()
+    // Step 1: Batch upsert all parks first
+    const uniqueParks = Array.from(parksInFeed).map(parkCode => ({
+      park_code: parkCode,
+      name: getParkFullName(parkCode),
+      designation: getParkDesignation(parkCode),
+    }))
 
-      if (park) {
-        await supabase
-          .from('alerts')
-          .update({ is_active: false })
-          .eq('park_id', park.id)
-          .eq('is_active', true)
-      }
+    await supabase
+      .from('parks')
+      .upsert(uniqueParks, { onConflict: 'park_code', ignoreDuplicates: false })
+
+    // Step 2: Get all park IDs in one query
+    const { data: parks } = await supabase
+      .from('parks')
+      .select('id, park_code')
+      .in('park_code', Array.from(parksInFeed))
+
+    const parkCodeToId = new Map<string, string>()
+    parks?.forEach(park => parkCodeToId.set(park.park_code, park.id))
+
+    // Step 3: Mark alerts as inactive for these parks (batch)
+    const parkIds = Array.from(parkCodeToId.values())
+    if (parkIds.length > 0) {
+      await supabase
+        .from('alerts')
+        .update({ is_active: false })
+        .in('park_id', parkIds)
+        .eq('is_active', true)
     }
 
-    // Step 2: Process each alert from NPS API
-    const seenAlerts = new Set<string>() // Track which park+alert combos we've seen
+    // Step 4: Prepare alerts for batch insert
+    const seenAlerts = new Set<string>()
+    const alertsToInsert = []
 
     for (const alert of npsData.data) {
-      try {
-        // Get full park name and designation from static mappings
-        const fullParkName = getParkFullName(alert.parkCode)
-        const designation = getParkDesignation(alert.parkCode)
+      const parkId = parkCodeToId.get(alert.parkCode)
+      if (!parkId) continue
 
-        // 1. Upsert park with full name and designation
-        const { data: park, error: parkError } = await supabase
-          .from('parks')
-          .upsert(
-            {
-              park_code: alert.parkCode,
-              name: fullParkName,
-              designation: designation,
-            },
-            { 
-              onConflict: 'park_code',
-              ignoreDuplicates: false // Ensure we update the fields if park exists
-            }
-          )
-          .select()
-          .single()
+      const alertKey = `${parkId}:${alert.id}`
+      if (seenAlerts.has(alertKey)) {
+        alertsSkipped++
+        continue
+      }
+      seenAlerts.add(alertKey)
 
-        if (parkError) throw parkError
+      alertsToInsert.push({
+        park_id: parkId,
+        nps_alert_id: alert.id,
+        title: alert.title,
+        description: alert.description,
+        category: alert.category,
+        url: alert.url,
+        last_updated_by_nps: alert.lastIndexedDate,
+        is_active: true,
+      })
+    }
 
-        parksInserted++
+    // Step 5: Batch insert alerts (ignore conflicts, then update separately)
+    if (alertsToInsert.length > 0) {
+      const { data: inserted, error: insertError } = await supabase
+        .from('alerts')
+        .insert(alertsToInsert)
+        .select('nps_alert_id')
 
-        const alertKey = `${park.id}:${alert.id}`
-        if (seenAlerts.has(alertKey)) {
-          alertsSkipped++
-          continue // Skip duplicates in same run
+      if (insertError && insertError.code !== '23505') {
+        console.error('Batch insert error:', insertError)
+      }
+
+      alertsInserted = inserted?.length || 0
+
+      // For duplicates, update them to mark as active
+      if (insertError?.code === '23505' || alertsInserted < alertsToInsert.length) {
+        for (const alert of alertsToInsert) {
+          await supabase
+            .from('alerts')
+            .update({ is_active: true })
+            .eq('park_id', alert.park_id)
+            .eq('nps_alert_id', alert.nps_alert_id)
+            .eq('is_active', false)
         }
-        seenAlerts.add(alertKey)
-
-        // 2. Try to insert new alert row (for history tracking)
-        const { error: insertError } = await supabase
-          .from('alerts')
-          .insert({
-            park_id: park.id,
-            nps_alert_id: alert.id,
-            title: alert.title,
-            description: alert.description,
-            category: alert.category,
-            url: alert.url,
-            last_updated_by_nps: alert.lastIndexedDate,
-            is_active: true,
-          })
-
-        if (insertError) {
-          // If unique constraint violation, update existing rows to mark as active
-          if (insertError.code === '23505') {
-            const { error: updateError } = await supabase
-              .from('alerts')
-              .update({ is_active: true })
-              .eq('park_id', park.id)
-              .eq('nps_alert_id', alert.id)
-
-            if (updateError) {
-              console.error('Error updating alert:', updateError)
-            } else {
-              alertsUpdated++
-            }
-          } else {
-            throw insertError
-          }
-        } else {
-          alertsInserted++
-        }
-      } catch (err) {
-        console.error(`Error processing alert ${alert.id}:`, err)
+        alertsUpdated = alertsToInsert.length - alertsInserted
       }
     }
+
+    parksInserted = uniqueParks.length
 
     return Response.json({
       ok: true,
