@@ -8,6 +8,8 @@ import Header from '@/app/components/Header'
 import { applySpeechImpedimentMode } from '@/lib/utils'
 import type { Park } from '@/lib/api'
 
+const STORAGE_KEY = 'speechImpedimentEnabled'
+
 export default function Home() {
   const [parks, setParks] = useState<Park[]>([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +17,19 @@ export default function Home() {
   const [search, setSearch] = useState('')
   const [selectedDesignation, setSelectedDesignation] = useState<string>('National Park')
   const [speechImpedimentEnabled, setSpeechImpedimentEnabled] = useState(false)
+
+  // Load speech impediment setting from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved !== null) {
+      setSpeechImpedimentEnabled(saved === 'true')
+    }
+  }, [])
+
+  // Save speech impediment setting to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(speechImpedimentEnabled))
+  }, [speechImpedimentEnabled])
 
   useEffect(() => {
     const fetchParks = async () => {

@@ -18,6 +18,8 @@ import BackButton from '@/app/components/BackButton'
 import { applySpeechImpedimentMode } from '@/lib/utils'
 import type { SpeechImpedimentSettings } from '@/lib/utils'
 
+const STORAGE_KEY = 'speechImpedimentEnabled'
+
 interface Alert {
   id: string
   nps_alert_id: string
@@ -63,6 +65,19 @@ export default function ParkPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [speechImpedimentEnabled, setSpeechImpedimentEnabled] = useState(false)
+
+  // Load speech impediment setting from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved !== null) {
+      setSpeechImpedimentEnabled(saved === 'true')
+    }
+  }, [])
+
+  // Save speech impediment setting to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(speechImpedimentEnabled))
+  }, [speechImpedimentEnabled])
 
   const fetchParkData = useCallback(async () => {
     try {
@@ -172,9 +187,18 @@ export default function ParkPage() {
               {park.designation}
             </p>
           )}
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-            {displayParkName(park.name)}
-          </h1>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+              {displayParkName(park.name)}
+            </h1>
+            <button
+              onClick={() => setSpeechImpedimentEnabled(!speechImpedimentEnabled)}
+              className="flex-shrink-0 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+              title="Toggle speech impediment mode for speech therapy research"
+            >
+              {speechImpedimentEnabled ? '🔤 Mode: On' : '🔤 Mode: Off'}
+            </button>
+          </div>
           <div className="flex items-center gap-4 flex-wrap">
             <p className="text-lg text-gray-600 dark:text-gray-400">
               {currentAlerts.length} active{' '}
