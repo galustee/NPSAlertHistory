@@ -31,12 +31,27 @@ export default function Home() {
 
   const filteredParks = parks.filter((park) => {
     const matchesSearch = park.name.toLowerCase().includes(search.toLowerCase())
-    const matchesDesignation = selectedDesignation === 'all' || park.designation === selectedDesignation
+    // Treat various National Park designations as equivalent
+    const matchesDesignation = selectedDesignation === 'all' || 
+      park.designation === selectedDesignation ||
+      (selectedDesignation === 'National Park' && (
+        park.designation === 'National Parks' || 
+        park.designation === 'National and State Parks' ||
+        park.designation === 'National Park & Preserve'
+      ))
     return matchesSearch && matchesDesignation
   })
 
-  // Get unique designations for filter
+  // Get unique designations for filter (combine National Park variations)
   const designations = Array.from(new Set(parks.map(p => p.designation).filter(Boolean))).sort()
+  
+  // Count parks for National Park category (includes all variations)
+  const nationalParksCount = parks.filter(p => 
+    p.designation === 'National Park' || 
+    p.designation === 'National Parks' ||
+    p.designation === 'National and State Parks' ||
+    p.designation === 'National Park & Preserve'
+  ).length
 
   return (
     <div className={BG_GRADIENT + ' min-h-screen'}>
@@ -89,8 +104,13 @@ export default function Home() {
               className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             >
               <option value="all">All Types ({parks.length})</option>
-              <option value="National Park">National Parks ({parks.filter(p => p.designation === 'National Park').length})</option>
-              {designations.filter(d => d !== 'National Park').map(designation => (
+              <option value="National Park">National Parks ({nationalParksCount})</option>
+              {designations.filter(d => 
+                d !== 'National Park' && 
+                d !== 'National Parks' && 
+                d !== 'National and State Parks' &&
+                d !== 'National Park & Preserve'
+              ).map(designation => (
                 <option key={designation} value={designation}>
                   {designation} ({parks.filter(p => p.designation === designation).length})
                 </option>
