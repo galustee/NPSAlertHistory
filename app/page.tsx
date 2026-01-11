@@ -157,16 +157,16 @@ export default function Home() {
       <footer className="border-t border-gray-200 dark:border-slate-800 mt-20 py-8">
         <div className={CONTAINER_STYLES.centered + ' text-center text-sm text-gray-600 dark:text-gray-400'}>
           <p>
-            Data sourced from{' '}
+            Current alerts from the{' '}
             <a
-              href="https://developer.nps.gov/api/v1/"
+              href="https://www.nps.gov/subjects/developer/index.htm"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              NPS Developer API
-            </a>{' '}
-            • Updated every 15 minutes
+              National Park Service API
+            </a>
+            , tracked and preserved every 15 minutes
           </p>
         </div>
       </footer>
