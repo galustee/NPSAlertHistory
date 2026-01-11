@@ -46,10 +46,10 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <MapPin className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              NPS Alerts History
+              LandLog.io
             </h1>
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
             Historical alert timelines for U.S. National Parks
           </p>
         </div>
@@ -78,15 +78,15 @@ export default function Home() {
             className="w-full px-6 py-3 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           />
           
-          <div className="flex items-center gap-3 flex-wrap">
-            <label htmlFor="designation-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label htmlFor="designation-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Filter by type:
             </label>
             <select
               id="designation-filter"
               value={selectedDesignation}
               onChange={(e) => setSelectedDesignation(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             >
               <option value="all">All Types ({parks.length})</option>
               <option value="National Park">National Parks ({parks.filter(p => p.designation === 'National Park').length})</option>
@@ -99,7 +99,7 @@ export default function Home() {
             {selectedDesignation !== 'all' && (
               <button
                 onClick={() => setSelectedDesignation('all')}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                className="w-full sm:w-auto text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
               >
                 Clear filter
               </button>
@@ -166,7 +166,7 @@ export default function Home() {
             >
               NPS Developer API
             </a>{' '}
-            • Updated daily at 9 AM UTC
+            • Updated every 15 minutes
           </p>
         </div>
       </footer>

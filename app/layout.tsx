@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NPS Alerts History",
-  description: "Historical alert timelines for U.S. National Parks",
+  title: "LandLog.io - National Parks Alert History",
+  description: "Track historical alerts and conditions for U.S. National Parks. See what alerts have affected each park over time.",
 };
 
 export default function RootLayout({
