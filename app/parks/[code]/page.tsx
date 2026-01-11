@@ -15,6 +15,8 @@ import {
   History,
 } from 'lucide-react'
 import BackButton from '@/app/components/BackButton'
+import { applySpeechImpedimentMode } from '@/lib/utils'
+import type { SpeechImpedimentSettings } from '@/lib/utils'
 
 interface Alert {
   id: string
@@ -60,6 +62,7 @@ export default function ParkPage() {
   const [history, setHistory] = useState<Record<string, HistoryVersion[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [speechImpedimentEnabled, setSpeechImpedimentEnabled] = useState(false)
 
   const fetchParkData = useCallback(async () => {
     try {
@@ -128,6 +131,10 @@ export default function ParkPage() {
     }
   }
 
+  const displayParkName = (name: string) => {
+    return applySpeechImpedimentMode(name, { enabled: speechImpedimentEnabled })
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center">
@@ -166,7 +173,7 @@ export default function ParkPage() {
             </p>
           )}
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-2">
-            {park.name}
+            {displayParkName(park.name)}
           </h1>
           <div className="flex items-center gap-4 flex-wrap">
             <p className="text-lg text-gray-600 dark:text-gray-400">
@@ -598,7 +605,7 @@ export default function ParkPage() {
             📊 About This Data
           </h3>
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            This page shows the current alerts for {park.name}. We poll the NPS
+            This page shows the current alerts for {displayParkName(park.name)}. We poll the NPS
             API every 15 minutes and store the complete alert history in our
             database. This allows us to track how alerts change over time for
             each park.

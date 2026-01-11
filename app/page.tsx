@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { AlertCircle, MapPin } from 'lucide-react'
 import { BG_GRADIENT, CONTAINER_STYLES, CARD_STYLES, API_ENDPOINTS, ERROR_MESSAGES } from '@/lib/constants'
 import Header from '@/app/components/Header'
+import { applySpeechImpedimentMode } from '@/lib/utils'
 import type { Park } from '@/lib/api'
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [selectedDesignation, setSelectedDesignation] = useState<string>('National Park')
+  const [speechImpedimentEnabled, setSpeechImpedimentEnabled] = useState(false)
 
   useEffect(() => {
     const fetchParks = async () => {
@@ -54,6 +56,10 @@ export default function Home() {
     p.designation === 'National Park & Preserve'
   ).length
 
+  const displayParkName = (name: string) => {
+    return applySpeechImpedimentMode(name, { enabled: speechImpedimentEnabled })
+  }
+
   return (
     <div className={BG_GRADIENT + ' min-h-screen'}>
       {/* Header */}
@@ -61,14 +67,23 @@ export default function Home() {
 
       {/* Hero Section */}
       <div className={CONTAINER_STYLES.centered + ' py-16'}>
-        <div className="mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Track Alert History Across National Parks
-          </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl">
-            The National Park Service provides current alerts, but we preserve the full timeline.
-            See what alerts have affected each park over time.
-          </p>
+        <div className="mb-12 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Track Alert History Across National Parks
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl">
+              The National Park Service provides current alerts, but we preserve the full timeline.
+              See what alerts have affected each park over time.
+            </p>
+          </div>
+          <button
+            onClick={() => setSpeechImpedimentEnabled(!speechImpedimentEnabled)}
+            className="flex-shrink-0 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+            title="Toggle speech impediment mode for speech therapy research"
+          >
+            {speechImpedimentEnabled ? '🔤 Mode: On' : '🔤 Mode: Off'}
+          </button>
         </div>
 
         {/* Search and Filter */}
@@ -146,7 +161,7 @@ export default function Home() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {park.name}
+                      {displayParkName(park.name)}
                     </h3>
                     {park.designation && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
