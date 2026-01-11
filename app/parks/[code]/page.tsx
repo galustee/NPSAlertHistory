@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import {
   AlertCircle,
   Calendar,
@@ -50,7 +50,9 @@ interface ParkData {
 
 export default function ParkPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const code = params.code as string
+  const alertIdFromUrl = searchParams.get('alertId')
 
   const [parkData, setParkData] = useState<ParkData | null>(null)
   const [expandedAlert, setExpandedAlert] = useState<string | null>(null)
@@ -77,6 +79,24 @@ export default function ParkPage() {
       fetchParkData()
     }
   }, [code, fetchParkData])
+
+  // Auto-expand and scroll to alert if alertId is in URL
+  useEffect(() => {
+    if (alertIdFromUrl && parkData) {
+      setExpandedAlert(alertIdFromUrl)
+      
+      // Scroll to the alert after a small delay to ensure DOM is updated
+      setTimeout(() => {
+        const alertElement = document.querySelector(`[data-alert-id="${alertIdFromUrl}"]`)
+        if (alertElement) {
+          // Scroll with padding above the alert box
+          const yOffset = -100 // pixels to offset from top
+          const y = alertElement.getBoundingClientRect().top + window.scrollY + yOffset
+          window.scrollTo({ top: y, behavior: 'smooth' })
+        }
+      }, 100)
+    }
+  }, [alertIdFromUrl, parkData])
 
   const fetchAlertHistory = async (alertId: string) => {
     try {
@@ -178,6 +198,7 @@ export default function ParkPage() {
             {currentAlerts.map((alert) => (
               <div
                 key={alert.nps_alert_id}
+                data-alert-id={alert.nps_alert_id}
                 className="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-lg transition-shadow"
               >
                 {/* Alert Summary */}

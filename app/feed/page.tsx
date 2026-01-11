@@ -163,7 +163,7 @@ export default function FeedPage() {
 
                         {/* Alert card */}
                         <Link
-                          href={`/parks/${alert.park.park_code}`}
+                          href={`/parks/${alert.park.park_code}?alertId=${alert.nps_alert_id}`}
                           className={'group ' + CARD_STYLES.base + ' ' + CARD_STYLES.hover + ' p-4 block'}
                         >
                           <div className="flex items-start justify-between gap-4 mb-2">
