@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AlertCircle, MapPin } from 'lucide-react'
-import { BG_GRADIENT, CONTAINER_STYLES, CARD_STYLES, NAV_STYLES, API_ENDPOINTS, ERROR_MESSAGES } from '@/lib/constants'
+import { BG_GRADIENT, CONTAINER_STYLES, CARD_STYLES, API_ENDPOINTS, ERROR_MESSAGES } from '@/lib/constants'
+import Header from '@/app/components/Header'
 import type { Park } from '@/lib/api'
 
 export default function Home() {
@@ -55,20 +56,8 @@ export default function Home() {
 
   return (
     <div className={BG_GRADIENT + ' min-h-screen'}>
-      {/* Navigation */}
-      <nav className={NAV_STYLES.base}>
-        <div className={CONTAINER_STYLES.centered + ' py-4 flex items-center justify-between'}>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              LandLog.io
-            </h1>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
-            Historical alert timelines for U.S. National Parks
-          </p>
-        </div>
-      </nav>
+      {/* Header */}
+      <Header />
 
       {/* Hero Section */}
       <div className={CONTAINER_STYLES.centered + ' py-16'}>

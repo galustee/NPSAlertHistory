@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import {
-  ArrowLeft,
   AlertCircle,
   Calendar,
   FileText,
@@ -15,6 +14,7 @@ import {
   XCircle,
   History,
 } from 'lucide-react'
+import BackButton from '@/app/components/BackButton'
 
 interface Alert {
   id: string
@@ -50,7 +50,6 @@ interface ParkData {
 
 export default function ParkPage() {
   const params = useParams()
-  const router = useRouter()
   const code = params.code as string
 
   const [parkData, setParkData] = useState<ParkData | null>(null)
@@ -120,17 +119,7 @@ export default function ParkPage() {
   if (error || !parkData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
-        <nav className="border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-6 py-4">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Parks
-            </button>
-          </div>
-        </nav>
+        <BackButton />
         <div className="max-w-6xl mx-auto px-6 py-12 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">
@@ -145,18 +134,8 @@ export default function ParkPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Parks
-          </button>
-        </div>
-      </nav>
+      {/* Back Button Navigation */}
+      <BackButton />
 
       {/* Header */}
       <div className="max-w-6xl mx-auto px-6 py-12">
