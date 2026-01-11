@@ -114,27 +114,80 @@ export async function GET(req: Request) {
       designation: getParkDesignation(parkCode),
     }))
 
-    await supabase
-      .from('parks')
-      .upsert(uniqueParks, { onConflict: 'park_code', ignoreDuplicates: false })
+    if (uniqueParks.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('parks')
+        .upsert(uniqueParks, { onConflict: 'park_code', ignoreDuplicates: false })
+
+      if (upsertError) {
+        console.error('Parks upsert error:', upsertError)
+        throw upsertError
+      }
+    }
 
     // Step 2: Get all park IDs in one query
-    const { data: parks } = await supabase
+    const { data: parks, error: parksError } = await supabase
       .from('parks')
       .select('id, park_code')
-      .in('park_code', Array.from(parksInFeed))
+
+    if (parksError) {
+      console.error('Parks query error:', parksError)
+      throw parksError
+    }
 
     const parkCodeToId = new Map<string, string>()
     parks?.forEach(park => parkCodeToId.set(park.park_code, park.id))
     const parkIds = Array.from(parkCodeToId.values())
 
-    // Step 3: Mark ALL alerts as inactive for parks we're about to process
-    if (parkIds.length > 0) {
-      await supabase
-        .from('alerts')
-        .update({ is_active: false })
-        .in('park_id', parkIds)
-        .eq('is_active', true)
+    // Step 3: Get ALL existing active alerts to deactivate those not in current feed
+    const { data: existingAlerts, error: alertsError } = await supabase
+      .from('alerts')
+      .select('id, park_id, nps_alert_id, is_active')
+      .eq('is_active', true)
+
+    if (alertsError) {
+      console.error('Existing alerts query error:', alertsError)
+      throw alertsError
+    }
+
+    // Track which alert IDs are in the current NPS feed
+    const npsAlertsByPark = new Map<string, Set<string>>()
+    for (const alert of npsData.data) {
+      if (!npsAlertsByPark.has(alert.parkCode)) {
+        npsAlertsByPark.set(alert.parkCode, new Set())
+      }
+      npsAlertsByPark.get(alert.parkCode)!.add(alert.id)
+    }
+
+    // Mark ALL active alerts as inactive if they're not in the current NPS feed
+    if (existingAlerts && existingAlerts.length > 0 && parks && parks.length > 0) {
+      const alertsToDeactivate: string[] = []
+      
+      for (const alert of existingAlerts) {
+        // Get the park code for this alert
+        const park = parks.find(p => p.id === alert.park_id)
+        if (!park) continue
+        
+        const npsAlertIds = npsAlertsByPark.get(park.park_code) || new Set()
+        
+        // If this alert is not in the current NPS feed, mark it for deactivation
+        if (!npsAlertIds.has(alert.nps_alert_id)) {
+          alertsToDeactivate.push(alert.id)
+        }
+      }
+
+      // Batch deactivate all alerts not in current feed
+      if (alertsToDeactivate.length > 0) {
+        const { error: deactivateError } = await supabase
+          .from('alerts')
+          .update({ is_active: false })
+          .in('id', alertsToDeactivate)
+        
+        if (deactivateError) {
+          console.error('Deactivation error:', deactivateError)
+          throw deactivateError
+        }
+      }
     }
 
     // Step 4: Prepare alerts for batch insert
