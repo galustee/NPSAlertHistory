@@ -9,7 +9,7 @@ async function checkAlert() {
   const { data: park } = await supabase
     .from('parks')
     .select('id, park_code, name')
-    .eq('park_code', 'alpo')
+    .eq('park_code', 'zion')
     .single()
 
   console.log('Park:', park)
@@ -19,8 +19,8 @@ async function checkAlert() {
     .from('alerts')
     .select('*')
     .eq('park_id', park!.id)
-    .order('last_updated_by_nps', { ascending: false })
-    .limit(5)
+    .order('fetched_at', { ascending: false })
+    .limit(10)
 
   console.log('\nRecent alerts:')
   alerts?.forEach(alert => {
@@ -33,9 +33,9 @@ async function checkAlert() {
   })
 
   // Check what the NPS API currently has
-  console.log('Checking NPS API...')
+  console.log('\nChecking NPS API...')
   const npsRes = await fetch(
-    `https://developer.nps.gov/api/v1/alerts?parkCode=alpo&api_key=${process.env.NPS_API_KEY}`
+    `https://developer.nps.gov/api/v1/alerts?parkCode=zion&api_key=${process.env.NPS_API_KEY}`
   )
   const npsData = await npsRes.json() as { data: Array<{ title: string; id: string; lastIndexedDate: string }> }
   

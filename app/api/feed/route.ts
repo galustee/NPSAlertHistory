@@ -27,12 +27,12 @@ export async function GET(request: Request) {
           designation
         )
       `)
-      .order('last_updated_by_nps', { ascending: false })
+      .order('fetched_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (error) throw error
 
-    // Group alerts by last_updated_by_nps timestamp to show activity batches
+    // Group alerts by fetched_at timestamp to show activity batches
     const activityFeed = recentAlerts?.map(alert => ({
       ...alert,
       park: alert.parks,
