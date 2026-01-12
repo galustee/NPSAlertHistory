@@ -19,7 +19,7 @@ async function checkAlert() {
     .from('alerts')
     .select('*')
     .eq('park_id', park!.id)
-    .order('fetched_at', { ascending: false })
+    .order('last_updated_by_nps', { ascending: false })
     .limit(5)
 
   console.log('\nRecent alerts:')

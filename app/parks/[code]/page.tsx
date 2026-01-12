@@ -349,7 +349,7 @@ export default function ParkPage() {
                                       <div className="flex items-center gap-2">
                                         <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                                           {new Date(
-                                            version.fetched_at
+                                            version.last_updated_by_nps
                                           ).toLocaleString()}
                                         </p>
                                         {index === 0 && (
@@ -553,7 +553,7 @@ export default function ParkPage() {
                                         <div className="flex items-center gap-2">
                                           <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                                             {new Date(
-                                              version.fetched_at
+                                              version.last_updated_by_nps
                                             ).toLocaleString()}
                                           </p>
                                           {index === 0 && (

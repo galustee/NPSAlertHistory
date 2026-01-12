@@ -52,8 +52,8 @@ export default function FeedPage() {
 
   // Group alerts by date
   const groupedAlerts: ActivityGroup[] = alerts.reduce((groups: ActivityGroup[], alert) => {
-    const date = new Date(alert.fetched_at).toLocaleDateString()
-    const displayDate = formatDisplayDate(alert.fetched_at)
+    const date = new Date(alert.last_updated_by_nps).toLocaleDateString()
+    const displayDate = formatDisplayDate(alert.last_updated_by_nps)
     
     let group = groups.find(g => g.date === date)
     if (!group) {

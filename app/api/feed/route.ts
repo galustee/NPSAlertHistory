@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get recent alert activity (when alerts were first fetched or last updated)
+    // Get recent alert activity (when alerts were updated by NPS)
     const { data: recentAlerts, error } = await supabase
       .from('alerts')
       .select(`
@@ -27,12 +27,12 @@ export async function GET(request: Request) {
           designation
         )
       `)
-      .order('fetched_at', { ascending: false })
+      .order('last_updated_by_nps', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (error) throw error
 
-    // Group alerts by fetched_at timestamp to show activity batches
+    // Group alerts by last_updated_by_nps timestamp to show activity batches
     const activityFeed = recentAlerts?.map(alert => ({
       ...alert,
       park: alert.parks,

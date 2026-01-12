@@ -31,7 +31,7 @@ export async function GET(
       .select('*')
       .eq('park_id', park.id)
       .order('nps_alert_id')
-      .order('fetched_at', { ascending: false })
+      .order('last_updated_by_nps', { ascending: false })
 
     if (alertError) throw alertError
 
