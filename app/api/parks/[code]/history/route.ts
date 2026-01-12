@@ -40,7 +40,7 @@ export async function GET(
       .select('*')
       .eq('park_id', park.id)
       .eq('nps_alert_id', alertId)
-      .order('fetched_at', { ascending: false })
+      .order('last_updated_by_nps', { ascending: false })
 
     if (historyError) throw historyError
 
