@@ -8,7 +8,7 @@ Track historical alerts for U.S. National Parks. The NPS API only shows current 
 - 🔍 **Park Designations** - Filter by National Park, Monument, Historic Site, etc.
 - 🎨 **Modern UI** - Responsive design with dark mode
 - ⚡ **Active/Inactive Tracking** - See which alerts are currently posted vs. archived
-- 🔄 **Daily Updates** - Automated polling every 15 minutes via GitHub Actions
+- 🔄 **15-Minute Updates** - Automated polling every 15 minutes via GitHub Actions
 
 ## Stack
 
